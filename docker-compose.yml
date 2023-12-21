@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - fastapi
+      - streamlit
+
+  fastapi:
+    build: .
+    command: uvicorn app:app --host 0.0.0.0 --port 8000
+    volumes:
+      - .:/app
+    expose:
+      - "8000"
+
+  streamlit:
+    build: .
+    command: streamlit run streamlit_app.py --server.port 8501 --server.headless true --server.address 0.0.0.0
+    volumes:
+      - .:/app
+    expose:
+      - "8501"
