@@ -1,26 +1,18 @@
-name: Build and deploy Python app to Azure Web Apps
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
+
+name: Build and deploy Python app to Azure Web App - gentle-cat-front
 
 on:
   push:
     branches:
       - main
-    paths:
-      - 'fastapi/**'
-      - 'streamlit/**'
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - app-name: 'gentle-cat-back'
-            app-path: 'fastapi/**'
-            publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_51113BC899354501AB763EFF0F910854 }}
-          - app-name: 'gentle-cat-front'
-            app-path: 'streamlit/**'
-            publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_82330B02A76142979BBFCA2AEA55D506 }}
 
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +42,14 @@ jobs:
             release.zip
             !venv/
 
+  deploy-front:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v3
         with:
@@ -59,9 +59,33 @@ jobs:
         run: unzip release.zip
 
       - name: 'Deploy to Azure Web App'
-        if: contains(github.event.push.changes[0].files, matrix.app-path)
         uses: azure/webapps-deploy@v2
+        id: deploy-to-webapp
         with:
-          app-name: ${{ matrix.app-name }}
+          app-name: 'gentle-cat-front'
           slot-name: 'Production'
-          publish-profile: ${{ matrix.publish-profile }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_82330B02A76142979BBFCA2AEA55D506 }}
+
+  deploy-back:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v3
+        with:
+          name: python-app
+
+      - name: Unzip artifact for deployment
+        run: unzip release.zip
+
+      - name: 'Deploy to Azure Web App'
+        uses: azure/webapps-deploy@v2
+        id: deploy-to-webapp
+        with:
+          app-name: 'gentle-cat-back'
+          slot-name: 'Production'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_51113BC899354501AB763EFF0F910854 }}
