@@ -8,7 +8,7 @@ from typing import Optional
 
 load_dotenv()
 
-connectionString = os.getenv("CONNECTION_STRING")
+connectionString = os.getenv("CONNECTION_STRING") or os.environ["CONNECTION_STRING"]
 
 app = FastAPI()
 

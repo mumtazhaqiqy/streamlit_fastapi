@@ -10,8 +10,8 @@ import calculate_margin_curve
 
 load_dotenv()
 
-backend_url = os.getenv("BACKEND_URL")
-connectionString = os.getenv("CONNECTION_STRING")
+backend_url = os.getenv("BACKEND_URL") or os.environ["BACKEND_URL"]
+connectionString = os.getenv("CONNECTION_STRING") or os.environ["CONNECTION_STRING"]
 
 # Create an engine instance
 engine = create_engine(os.getenv("CONNECTION_STRING"))
