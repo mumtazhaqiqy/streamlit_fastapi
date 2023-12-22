@@ -1,3 +1,11 @@
 fastapi
 uvicorn
 streamlit
+matplotlib
+pydantic
+pandas
+numpy
+scipy
+sqlmodel
+pyodbc
+python-dotenv
