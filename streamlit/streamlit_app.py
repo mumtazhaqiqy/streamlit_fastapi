@@ -1,5 +1,7 @@
 import os
 from dotenv import load_dotenv
+from io import BytesIO
+from pyxlsb import open_workbook as open_xlsb
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -228,6 +230,17 @@ def replace_data(df):
         session.commit()        
         st.success('Data successfully updated in the database!')
 
+def to_excel(df):
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False, sheet_name='Sheet1')
+    workbook = writer.book
+    worksheet = writer.sheets['Sheet1']
+    format1 = workbook.add_format({'num_format': '0.00'}) 
+    worksheet.set_column('A:A', None, format1)  
+    writer.close()
+    processed_data = output.getvalue()
+    return processed_data
 
 # clear_session()
 # create_tables()
@@ -447,9 +460,40 @@ elif page == 'View Margin Curve Data':
 
 elif page == 'Price Tools Upload CSV':
     st.title('Price Tools Upload CSV')
-    uploaded_file = st.sidebar.file_uploader("Upload CSV", type="csv")
-    if uploaded_file is not None:
-        data = pd.read_csv(uploaded_file, sep=';')
+    price_uploaded_file = st.sidebar.file_uploader("Upload XLS", type="xls")
+    
+    if price_uploaded_file is not None:
+        data = pd.read_excel(price_uploaded_file)
         st.success(f'Successfully Uploaded {len(data)} rows')
         
-        st.dataframe(data.head(20))
+        # Map the data to the correct column name (category, item_code, cogs)
+        category = st.sidebar.selectbox('Category', data.columns)
+        item_code = st.sidebar.selectbox('Item Code', data.columns)
+        cogs = st.sidebar.selectbox('Cogs', data.columns)
+        
+        # Remap data according to column mapping
+        data = data[[category, item_code, cogs]]
+        data[item_code] = data[item_code].astype(str)
+        
+        # Create a request to the API and get the response
+        inputs = data.to_dict('records')
+        
+        create_request = st.sidebar.button('Create Request')
+        
+        if create_request:
+            res = requests.post(url=backend_url + "price_suggestion?confident=default", data=json.dumps(inputs))
+            suggested_price = json.loads(res.text)[0]['suggested_price']
+            
+            # Add suggested price to dataframe
+            data['suggested_price'] = suggested_price
+            st.write(data.head(5))
+            
+            # Convert data to DataFrame
+            df = pd.DataFrame(data)
+            
+            # Convert DataFrame to Excel
+            df_xlsx = to_excel(df)
+            st.download_button(label='📥 Download Current Result',
+                            data=df_xlsx,
+                            file_name='pricelist_with_suggestion.xlsx')
+            

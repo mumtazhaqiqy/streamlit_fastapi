@@ -9,3 +9,6 @@ scipy
 sqlmodel
 pyodbc
 python-dotenv
+xlrd
+xlsxwriter
+pyxlsb
