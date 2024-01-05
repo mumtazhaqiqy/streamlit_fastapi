@@ -486,23 +486,17 @@ elif page == 'Price Tools Upload XLS':
         
         # Create a request to the API and get the response
         inputs = data.to_dict('records')
-        
+        # st.write(inputs)
         create_request = st.sidebar.button('Create Request')
-        
+
         if create_request:
             res = requests.post(url=backend_url + "price_suggestion?confident=default", data=json.dumps(inputs))
-            suggested_price = json.loads(res.text)[0]['suggested_price']
+            suggested_price = json.loads(res.text)
             
-            # Add suggested price to dataframe
+            suggested_price = pd.DataFrame(suggested_price).get('suggested_price')
+            
             data['suggested_price'] = suggested_price
-            st.write(data.head(5))
+            st.write(data)
             
-            # Convert data to DataFrame
-            df = pd.DataFrame(data)
-            
-            # Convert DataFrame to Excel
-            df_xlsx = to_excel(df)
-            st.download_button(label='📥 Download Current Result',
-                            data=df_xlsx,
-                            file_name='pricelist_with_suggestion.xlsx')
-            
+            df_xlsx = to_excel(pd.DataFrame(data))
+            st.download_button(label='📥 Download Current Result', data=df_xlsx, file_name='pricelist_with_suggestion.xlsx')
