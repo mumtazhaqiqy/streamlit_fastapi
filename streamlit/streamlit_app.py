@@ -247,7 +247,7 @@ def to_excel(df):
 
 st.set_page_config(layout="wide")
 st.sidebar.title('Navigation')
-page = st.sidebar.selectbox('Choose a page:', ['View Margin Curve Data', 'View Price Data', 'Upload Base Data', 'Price Tools Upload CSV'])
+page = st.sidebar.selectbox('Choose a page:', ['View Margin Curve Data', 'View Price Data', 'Upload Base Data', 'Price Tools Upload XLS'])
 
 if page == 'Upload Base Data':
     st.title('Upload Base Data')
@@ -458,12 +458,18 @@ elif page == 'View Margin Curve Data':
         col1.text('Margin Bruto and Price Suggestion Chart')
         col1.pyplot(fig)
 
-elif page == 'Price Tools Upload CSV':
-    st.title('Price Tools Upload CSV')
-    price_uploaded_file = st.sidebar.file_uploader("Upload XLS", type="xls")
+elif page == 'Price Tools Upload XLS':
+    st.title('Price Tools Upload XLS')
+    price_uploaded_file = st.sidebar.file_uploader("Upload File", type=["xls", "csv"])
     
     if price_uploaded_file is not None:
-        data = pd.read_excel(price_uploaded_file)
+        if price_uploaded_file.name.endswith('.xls'):
+            data = pd.read_excel(price_uploaded_file)
+        elif price_uploaded_file.name.endswith('.csv'):
+            data = pd.read_csv(price_uploaded_file)
+        else:
+            st.error("Invalid file format. Please upload a valid XLS or CSV file.")
+        
         st.success(f'Successfully Uploaded {len(data)} rows')
         
         # Map the data to the correct column name (category, item_code, cogs)
@@ -474,6 +480,9 @@ elif page == 'Price Tools Upload CSV':
         # Remap data according to column mapping
         data = data[[category, item_code, cogs]]
         data[item_code] = data[item_code].astype(str)
+        
+        # change column header to category, item_code, cogs
+        data.columns = ['category', 'item_code', 'cogs']
         
         # Create a request to the API and get the response
         inputs = data.to_dict('records')
