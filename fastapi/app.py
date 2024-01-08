@@ -102,7 +102,7 @@ async def get_categories():
 
 # Endpoint to get price suggestions
 @app.post("/price_suggestion", response_model=List[PriceSuggestionResponse])
-async def get_price_suggestion(requests: List[PriceSuggestionRequest], confident: Optional[str] = "default"):
+async def get_price_suggestion(requests: List[PriceSuggestionRequest], confident: Optional[str] = "default", min_margin: Optional[float] = 0.06, max_margin: Optional[float] = 0.20):
     responses = []
     for request in requests:
         margin_data = get_margin_data(request.category)
@@ -113,7 +113,9 @@ async def get_price_suggestion(requests: List[PriceSuggestionRequest], confident
         suggested_price = calculate_price_with_confidence(
             request.cogs, margin_data.margin_curveA, margin_data.margin_curveB, 
             margin_data.ci_a_lower, margin_data.ci_a_upper, margin_data.ci_b_lower, margin_data.ci_b_upper, 
-            strategy=confident
+            strategy=confident,
+            margin_min=min_margin,
+            margin_max=max_margin
         )            
 
         # Append the result to the responses list
@@ -141,10 +143,11 @@ def calculate_price(cogs: float, margin_curveA: float, margin_curveB: float) -> 
     return suggested_price
 
 
-def calculate_price_with_confidence(cogs, margin_curveA, margin_curveB, ci_a_lower, ci_a_upper, ci_b_lower, ci_b_upper, strategy='default'):
-    margin_min = 0.06
-    margin_max = 0.20
-    
+def calculate_price_with_confidence(cogs: float, margin_curveA: float, margin_curveB: float, ci_a_lower, ci_a_upper, ci_b_lower, ci_b_upper, strategy='default', margin_min='0.06', margin_max='0.24'):
+
+    margin_min = float(margin_min)
+    margin_max = float(margin_max)
+
     if strategy == 'conservative':
         # Use the lower bound of A and the upper bound of B
         A = ci_a_lower
@@ -163,11 +166,13 @@ def calculate_price_with_confidence(cogs, margin_curveA, margin_curveB, ci_a_low
         B = margin_curveB
 
     suggested_price = A * (cogs ** B)
+    price_from_margin_max = cogs / (1 - margin_max)
+    price_from_margin_min = cogs / (1 - margin_min)
     
     # logic to check if suggested price is < margin_min use margin_min else if suggested price is > margin_max use margin_max else use suggested price
-    if suggested_price < margin_min:
+    if suggested_price < price_from_margin_min:
         suggested_price = cogs / (1 - margin_min)
-    elif suggested_price > margin_max:
+    elif suggested_price > price_from_margin_max:
         suggested_price = cogs / (1 - margin_max)
     else:
         suggested_price = suggested_price

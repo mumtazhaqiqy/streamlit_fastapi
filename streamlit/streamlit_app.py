@@ -396,8 +396,8 @@ elif page == 'View Margin Curve Data':
 
     if cogs_input:
         #convertion the input into json format
-        res = requests.post(url = backend_url + "price_suggestion?confident=default", data = json.dumps(inputs))
-        # st.write(res.text)
+        res = requests.post(url = backend_url + "price_suggestion?confident=default&min_margin=" + str(min_margin) + "&max_margin=" + str(max_margin), data = json.dumps(inputs))
+
         # get suggested price from res
         suggested_price = json.loads(res.text)[0]['suggested_price']
         
@@ -432,14 +432,14 @@ elif page == 'View Margin Curve Data':
         margin_curve_a = category_data['margin_curveA'].iloc[0]
         margin_curve_b = category_data['margin_curveB'].iloc[0]
         
-        df_price_data['price_suggestion'] = round(margin_curve_a * (df_price_data['cogs'] ** margin_curve_b), 2)
-        df_price_data['Margin Bruto'] = round((df_price_data['price_suggestion'] - df_price_data['cogs']) / df_price_data['price_suggestion'], 2)
+        df_price_data['price_suggestion'] = margin_curve_a * (df_price_data['cogs'] ** margin_curve_b)
         df_price_data['price_from_mb_min'] = round(df_price_data['cogs'] / (1 - min_margin), 2)
         df_price_data['price_from_mb_max'] = round(df_price_data['cogs'] / (1 - max_margin), 2)
         df_price_data['price_suggestion'] = df_price_data.apply(
             lambda x: x['price_from_mb_min'] if x['price_suggestion'] < x['price_from_mb_min'] 
             else x['price_from_mb_max'] if x['price_suggestion'] > x['price_from_mb_max'] 
             else x['price_suggestion'], axis=1)
+        df_price_data['Margin Bruto'] = (df_price_data['price_suggestion'] - df_price_data['cogs']) / df_price_data['price_suggestion']
         
         col2.text('Price Suggestion Data')
         col2.dataframe(df_price_data, use_container_width=True)
@@ -461,6 +461,8 @@ elif page == 'View Margin Curve Data':
 elif page == 'Price Tools Upload XLS':
     st.title('Price Tools Upload XLS')
     price_uploaded_file = st.sidebar.file_uploader("Upload File", type=["xls", "csv"])
+    min_margin = st.sidebar.slider('Margin Bruto Min', 0.0, 1.0, 0.06)
+    max_margin = st.sidebar.slider('Margin Bruto Max', 0.0, 1.0, 0.20)
     
     if price_uploaded_file is not None:
         if price_uploaded_file.name.endswith('.xls'):
@@ -491,6 +493,8 @@ elif page == 'Price Tools Upload XLS':
 
         if create_request:
             res = requests.post(url=backend_url + "price_suggestion?confident=default", data=json.dumps(inputs))
+            res = requests.post(url = backend_url + "price_suggestion?confident=default&min_margin=" + str(min_margin) + "&max_margin=" + str(max_margin), data = json.dumps(inputs))
+            
             suggested_price = json.loads(res.text)
             
             suggested_price = pd.DataFrame(suggested_price).get('suggested_price')
