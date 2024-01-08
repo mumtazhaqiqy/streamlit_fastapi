@@ -33,7 +33,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application files
 COPY fastapi/app.py  /app/fastapi/
 COPY streamlit/streamlit_app.py /app/streamlit/
-COPY common/ /app/common/
 
 # Expose ports (not strictly necessary with Docker Compose, but good practice)
 EXPOSE 8000

@@ -69,11 +69,11 @@ class PriceDataResponse(BaseModel):
 
 
 # Helper function to get margin data from the database
-def get_margin_data(category: str):
+def get_margin_data(categories: List[str]):
     # Create a Session
     with Session(engine) as session:
-        statement = select(CalculationData).where(CalculationData.category == category)
-        data = session.exec(statement).first()
+        statement = select(CalculationData).where(CalculationData.category in categories)
+        data = session.exec(statement).all()
         if data:
             return data
         else:
@@ -104,11 +104,15 @@ async def get_categories():
 @app.post("/price_suggestion", response_model=List[PriceSuggestionResponse])
 async def get_price_suggestion(requests: List[PriceSuggestionRequest], confident: Optional[str] = "default", min_margin: Optional[float] = 0.06, max_margin: Optional[float] = 0.20):
     responses = []
+    margin_data = get_margin_data([request.category for request in requests])
+    
     for request in requests:
-        margin_data = get_margin_data(request.category)
         # Check if confident parameter is provided and select the appropriate calculation method
         if confident is None:
             confident = 'default'
+            
+        category = request.category
+        margin_data = next((item for item in margin_data if item.category == category), None)
             
         suggested_price = calculate_price_with_confidence(
             request.cogs, margin_data.margin_curveA, margin_data.margin_curveB, 
