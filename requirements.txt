@@ -11,4 +11,5 @@ pyodbc
 python-dotenv
 xlrd
 xlsxwriter
+openpyxl
 pyxlsb
